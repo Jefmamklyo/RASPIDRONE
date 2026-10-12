@@ -30,18 +30,14 @@ print("Camera 1:",cam1.isOpened())
 print("Casmera 2:", cam2.isOpened())
 
 
-orb = cv.ORB_create(nfeatures=800, scoreType = cv.ORB_FAST_SCORE)
-
-
-
-
-
+orb = cv.ORB_create(nfeatures=800, scoreType = cv.ORB_FAST_SCORE) #initiliase orb
+#initilaise stereo 
+stereo = cv.StereoSGBM_create(minDisparity = 0, numDisparities = 128, blockSize = 7, P1 = 1176, P2=4704, disp12MaxDiff=1, uniquenessRatio = 10, speckleWindowSize = 100, speckleRange = 32)
 
 
 #Stereo Vision Helper functions
 
 def StereoDisparity(leftCam, rightCam):
-     stereo = cv.StereoSGBM_create(minDisparity = 0, numDisparities = 128, blockSize = 7, P1 = 1176, P2=4704, disp12MaxDiff=1, uniquenessRatio = 10, speckleWindowSize = 100, speckleRange = 32)
      disparity = stereo.compute(leftCam, rightCam).astype(np.float32)/16
      return disparity
 
@@ -69,37 +65,49 @@ def RGBHeightmap(heightMap, validMask):
 ###################################################
 
 
+#PARAMS TO BE NEEDED? PLEWAES EDIT LATER IF NOYT BE
 
+map3d = [] #3d pointcloud map
+prevFrame = None #For getting differences between frames?
+step = 5
+frameNumber = 0 #used with step as each frame being tracked would be incredibly inefficient so we only track every 5 ish grames
+#param to store rotation adn translation
 
 while True:
-        retL, frameLeft = cam1.read()
-        retR, frameRight = cam2.read()
 
-        
 
-        if not retL or not retR:
-            print("No return value. breaking Camrea")
-            break
-        
+    #initial camera setup
+    retL, frameLeft = cam1.read()
+    retR, frameRight = cam2.read()
 
 
 
-        grayLeft = cv.cvtColor(frameLeft, cv.COLOR_BGR2GRAY)
-        grayRight = cv.cvtColor(frameRight, cv.COLOR_BGR2GRAY)
+    grayLeft = cv.cvtColor(frameLeft, cv.COLOR_BGR2GRAY)
+    grayRight = cv.cvtColor(frameRight, cv.COLOR_BGR2GRAY)
 
-        disparity = StereoDisparity(grayLeft, grayRight)
+    
 
-        heightMap, validMask =heightMapGeneration(disparity)
+    #step counter for optimisation
 
-        keyPoints, descriptors = orb.detectAndCompute(grayLeft, None)
-            
+    #ORB implementation
+        #Fweature matching mbetween frames
+        #Transformation Matrix
+
+    #Stereo depth identification
+
+
+    #Sample 3d Height maps with valid poixel coordinates from stereo maps
+
+    #Build 3d Maps
+    # 
+    # #display  
 
 
 
-        exitKey= cv.waitKey(1)
-  
-        if exitKey == ord('l'):
-            break
+    exitKey= cv.waitKey(1)
+
+    if exitKey == ord('l'):
+        break
 
 
 cam1.release()
