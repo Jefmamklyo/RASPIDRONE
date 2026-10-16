@@ -24,7 +24,7 @@ cam2.set(cv.CAP_PROP_FPS, 15)
 #checkerBoardSize = (9,6)
 #checkerSquareSize = 0.025 #meters
 
-baseLine = 8 #distance between cameras cm
+baseLine = 0.08 #distance between cameras m
 fx = 3015 #camera fiocal lenght foudn from tuning
 
 
@@ -45,15 +45,17 @@ def StereoDisparity(leftCam, rightCam):
 
 def heightMapGeneration(disparity):
     #remove dispaority >1
-    validMask = (disparity > 1 ) & (disparity < fx * baseLine /0.15)
-    heightMap = np.zeros(disparity.shape, dtype=np.uint8)
 
-    if validMask.any():
-        validValues = disparity[validMask]
-        heightMap[validValues] = fx * baseLine/disparity[validValues]
+    validMask = (disparity > 1 ) 
+
+    depth = np.zeros(disparity.shape, dtype=np.float32)
+
+    depth[validMask] = fx * baseLine/disparity[validMask]
+
+    validMask &= (depth >1) & (depth <5)
 
         
-    heightMap, validMask
+    return depth, validMask
 
 
 #convert to RGB because why not
@@ -76,7 +78,7 @@ frameNumber = 0 #used with step as each frame being tracked would be incredibly 
 position = np.eye(4, dtype = np.float32)
 
 orb = cv.ORB_create(nfeatures=800, scoreType = cv.ORB_FAST_SCORE) #initiliase orb
-bf = cv.BFMatcher(cv.NOORM_HAMMING, crossCheck = True)
+bf = cv.BFMatcher(cv.NORM_HAMMING, crossCheck = True)
 
 while True:
 
@@ -105,7 +107,7 @@ while True:
 
     #gather previosu frame for comparisoin
     if prevFrame is not None and description is not None:
-        kpPrev, descriptionPrev = orb.detectAndComput(prevFrame, None)
+        kpPrev, descriptionPrev = orb.detectAndCompute(prevFrame, None)
         #feature matching algorith
         if descriptionPrev is not None:
             #faeture matching algorithm
@@ -114,13 +116,13 @@ while True:
             matches = sorted(matches, key= lambda x:x.distance)
 
             if len(matches) > 10:
-                points1 = np.float32([kp[m.queryIDX].pt for m in matches[:100]])
-                points2 = np.float32([kpPrev[m.queryIDX].pt for m in matches[:100]])
+                points1 = np.float32([kp[m.queryIdx].pt for m in matches[:100]])
+                points2 = np.float32([kpPrev[m.queryIdx].pt for m in matches[:100]])
 
                 #describes current to prevoius points rotational and translational directions
                 #camw/2,camheiht/ = image centre
                 #last two argyuments mean confidense and RANSAC Subset aggremenet to one pixel
-                essentialMatrix, mask = cv.findEssentialMat(points1, points2, fx, (camWidth/2, camHeight/2), 0.999, 1)
+                essentialMatrix, mask = cv.findEssentialMat(points1, points2, fx, (camWidth/2, camHeight/2), cv.RANSAC, 0.999, 1)
 
 
                 #essential mmatrix multiplacation look at docuimentation
@@ -130,7 +132,7 @@ while True:
                     transformationMatrix = np.eye(4, dtype=np.float32)
                     transformationMatrix[:3, :3] = Rotation.astype(np.float32)
                     transformationMatrix[:3, 3] = Translation[:,0].astype(np.float32)
-                    position = transformationMatrix @ position #imporatbnt order T@P not P@T 
+                    position = position @ transformationMatrix #imporatbnt order P@T not T@P 
 
     prevFrame = grayLeft.copy()
 
@@ -148,26 +150,26 @@ while True:
     depth, valid = heightMapGeneration(disparity)
 
     #keep values between 0.1 and 5m
-    valid &= (depth > 0.1) and (depth <5)
+    valid &= (depth > 0.1) & (depth <5)
 
     ###############################################################################
     #Sample 3d Height maps with valid poixel coordinates from stereo maps
     ################################################################################
 
-    xs, ys = np.where(valid)
+    ys, xs = np.where(valid)
 
     xs = xs[::8] #optimsation store every 8 only
     ys= ys[::8]
 
-    z = depth[xs,ys]
-    x = (xs - camWidth /2) * z * fx
-    y = (ys - camHeight /2) *z * fx
+    z = depth[ys,xs]
+    x = (xs - camWidth /2) * z / fx
+    y = (ys - camHeight /2) *z / fx
 
-    points = np.collum_stack((x,y,z))
+    points = np.column_stack((x,y,z))
 
 
     #rigid body transformations
-    pointsHomogenous = np.collum_stack((points, np.ones(len(points)))) #turn pooints into 4x4 homogenous for position @ 
+    pointsHomogenous = np.column_stack((points, np.ones(len(points)))) #turn pooints into 4x4 homogenous for position @ 
     worldRef = (position @ pointsHomogenous.T).T[:, :3]  #T = transpose matrix
 
     map3D.extend(worldRef.tolist())
@@ -190,7 +192,7 @@ while True:
         pointsY = ((pts[:,2]+2)*100).astype(int) #OG Z
         height = pts[:,1] #OG Y
 
-        heightmap = np.zeroes((400,400), np.float32) #initilise the 400 by 400 height map
+        heightmap = np.zeros((400,400), np.float32) #initilise the 400 by 400 height map
 
 
         #& = bitswise and, px and py < 400 not <= due to 0 based indexing
@@ -211,14 +213,14 @@ while True:
         
     else:
         #create blacnk fallback image
-        view = np.zeroes((400,400,3), np.uint8)
+        view = np.zeros((400,400,3), np.uint8)
 
     ################################################################################      
     # #display  
     ################################################################################
 
 
-    cv.putText(view, f"3DPoints = {len(map3D)}", (10,25), cv.FONT_HERSHEY_SImPLEX, 0.6, (255,255,255), 2)
+    cv.putText(view, f"3DPoints = {len(map3D)}", (10,25), cv.FONT_HERSHEY_SIMPLEX, 0.6, (255,255,255), 2)
 
     cv.imshow("Live Topography", view)
     cv.imshow("Left Camera", grayLeft)
