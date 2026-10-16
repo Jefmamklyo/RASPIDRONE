@@ -117,7 +117,7 @@ while True:
 
             if len(matches) > 10:
                 points1 = np.float32([kp[m.queryIdx].pt for m in matches[:100]])
-                points2 = np.float32([kpPrev[m.queryIdx].pt for m in matches[:100]])
+                points2 = np.float32([kpPrev[m.trainIdx].pt for m in matches[:100]])
 
                 #describes current to prevoius points rotational and translational directions
                 #camw/2,camheiht/ = image centre
