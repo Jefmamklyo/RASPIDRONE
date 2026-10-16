@@ -192,29 +192,64 @@ while True:
         pointsY = ((pts[:,2]+2)*100).astype(int) #OG Z
         height = pts[:,1] #OG Y
 
-        heightmap = np.zeros((400,400), np.float32) #initilise the 400 by 400 height map
-
-
+        heightmap = np.zeros((400, 400), dtype=np.float32)
+        occupied = np.zeros((400, 400), dtype=bool) #boolean for black white
+        
         #& = bitswise and, px and py < 400 not <= due to 0 based indexing
         filter = (pointsX >= 0 ) & (pointsX < 400) & (pointsY >= 0) & (pointsY < 400)
 
         #apply filter
         pointsX, pointsY, heights = pointsX[filter], pointsY[filter], height[filter]
 
-        #sort by heighest + populate
-
-        sortedIDX = np.argsort(heights)
-        heightmap[pointsY[sortedIDX], pointsX[sortedIDX]] = heights[sortedIDX]
-
-        #normalise between 0-255 fo4r visualsation + colormap
-
-        view = cv.normalize(heightmap, None, 0, 255, cv.NORM_MINMAX).astype(np.uint8)
-        view = cv.applyColorMap(view, cv.COLORMAP_JET)
+        #Cell based max poiunts
+        np.maximum.at(heightmap, (pointsY, pointsX), heights)
+        occupied[pointsY, pointsX] = True
         
+        # Fixed normalsied system over 0-255 (arbitraty change later)
+        minHeight = -0.5
+        maxHeight = 1.0
+
+        #clip for better nomralisation over np mormalisation
+        normalised = np.clip((heightmap - minHeight) / (maxHeight - minHeight),0.0, 1.0)
+        
+        view = cv.applyColorMap((normalised * 255).astype(np.uint8), cv.COLORMAP_JET)
+        
+        # nblack to backroudn cells
+        # ~ = integer bit flip (true - false, false-true on np bool arrays)
+        view[~occupied] = (0, 0, 0)
     else:
         #create blacnk fallback image
         view = np.zeros((400,400,3), np.uint8)
 
+
+
+
+   
+    """
+    ORIGINAL
+    heightmap = np.zeros((400,400), np.float32) #initilise the 400 by 400 height map
+
+
+            #& = bitswise and, px and py < 400 not <= due to 0 based indexing
+            filter = (pointsX >= 0 ) & (pointsX < 400) & (pointsY >= 0) & (pointsY < 400)
+
+            #apply filter
+            pointsX, pointsY, heights = pointsX[filter], pointsY[filter], height[filter]
+
+            #sort by heighest + populate
+
+            sortedIDX = np.argsort(heights)
+            heightmap[pointsY[sortedIDX], pointsX[sortedIDX]] = heights[sortedIDX]
+
+            #normalise between 0-255 fo4r visualsation + colormap
+
+            view = cv.normalize(heightmap, None, 0, 255, cv.NORM_MINMAX).astype(np.uint8)
+            view = cv.applyColorMap(view, cv.COLORMAP_JET)
+            
+        else:
+            #create blacnk fallback image
+            view = np.zeros((400,400,3), np.uint8)
+    """
     ################################################################################      
     # #display  
     ################################################################################
