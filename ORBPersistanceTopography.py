@@ -69,14 +69,14 @@ def RGBHeightmap(heightMap, validMask):
 
 #PARAMS TO BE NEEDED? PLEWAES EDIT LATER IF NOYT BE
 
-map3d = [] #3d pointcloud map
+map3D = [] #3d pointcloud map
 prevFrame = None #For getting differences between frames?
 step = 5
 frameNumber = 0 #used with step as each frame being tracked would be incredibly inefficient so we only track every 5 ish grames
 position = np.eye(4, dtype = np.float32)
 
 orb = cv.ORB_create(nfeatures=800, scoreType = cv.ORB_FAST_SCORE) #initiliase orb
-bf = cv.BGFMatcher(cv.NOORM_HAMMING, crossCheck = True)
+bf = cv.BFMatcher(cv.NOORM_HAMMING, crossCheck = True)
 
 while True:
 
@@ -140,9 +140,9 @@ while True:
 
 
 
-
+    ########################################
     #Stereo depth identification
-
+    ########################################
 
     disparity = StereoDisparity(grayLeft, grayRight)
     depth, valid = heightMapGeneration(disparity)
@@ -150,16 +150,78 @@ while True:
     #keep values between 0.1 and 5m
     valid &= (depth > 0.1) and (depth <5)
 
-
+    ###############################################################################
     #Sample 3d Height maps with valid poixel coordinates from stereo maps
+    ################################################################################
 
+    xs, ys = np.where(valid)
+
+    xs = xs[::8] #optimsation store every 8 only
+    ys= ys[::8]
+
+    z = depth[xs,ys]
+    x = (xs - camWidth /2) * z * fx
+    y = (ys - camHeight /2) *z * fx
+
+    points = np.collum_stack((x,y,z))
+
+
+    #rigid body transformations
+    pointsHomogenous = np.collum_stack((points, np.ones(len(points)))) #turn pooints into 4x4 homogenous for position @ 
+    worldRef = (position @ pointsHomogenous.T).T[:, :3]  #T = transpose matrix
+
+    map3D.extend(worldRef.tolist())
+
+
+
+
+    ################################################################################
     #Build 3d Maps
-    
+    ################################################################################
+
+    #accesing a object that might not be populated/initilised (null checking/DID)
+    if map3D:
+        #convert to np.array
+        pts = np.asarray(map3D) 
 
 
+        # X is X, Z is Y, Y is Z becuase top down pershpective shift
+        pointsX = ((pts[:,0]+2) * 100).astype(int)       #OG X
+        pointsY = ((pts[:,2]+2)*100).astype(int) #OG Z
+        height = pts[:,1] #OG Y
+
+        heightmap = np.zeroes((400,400), np.float32) #initilise the 400 by 400 height map
+
+
+        #& = bitswise and, px and py < 400 not <= due to 0 based indexing
+        filter = (pointsX >= 0 ) & (pointsX < 400) & (pointsY >= 0) & (pointsY < 400)
+
+        #apply filter
+        pointsX, pointsY, heights = pointsX[filter], pointsY[filter], height[filter]
+
+        #sort by heighest + populate
+
+        sortedIDX = np.argsort(heights)
+        heightmap[pointsY[sortedIDX], pointsX[sortedIDX]] = heights[sortedIDX]
+
+        #normalise between 0-255 fo4r visualsation + colormap
+
+        view = cv.normalize(heightmap, None, 0, 255, cv.NORM_MINMAX).astype(np.uint8)
+        view = cv.applyColorMap(view, cv.COLORMAP_JET)
+        
+    else:
+        #create blacnk fallback image
+        view = np.zeroes((400,400,3), np.uint8)
+
+    ################################################################################      
     # #display  
+    ################################################################################
 
 
+    cv.putText(view, f"3DPoints = {len(map3D)}", (10,25), cv.FONT_HERSHEY_SImPLEX, 0.6, (255,255,255), 2)
+
+    cv.imshow("Live Topography", view)
+    cv.imshow("Left Camera", grayLeft)
 
 
     exitKey= cv.waitKey(1)
@@ -167,7 +229,14 @@ while True:
     if exitKey == ord('l'):
         break
 
+################################################################################      
+# #Save  for persistance 
+################################################################################
+
+
 
 cam1.release()
 cam2.release()
-            
+cv.destroyAllWindows()            
+
+np.save("points.npy", np.asarray(map3D))
