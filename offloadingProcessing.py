@@ -40,15 +40,15 @@ if __name__ == "__main__":
     cam1.set(cv.CAP_PROP_FPS, 15)
     cam1.set(cv.CAP_PROP_BUFFERSIZE, 1)
     with socket.create_connection((IP, PORT), timeout = 3) as s:
-        s.setsockopt(socket.IPPROTO_TCP, socket.TCPNODELAY,1) #N algorithm
-        s.setsocketopt(socket.SOL_SOCKET, socket.SO_KEEPALIVE, 1)
+        s.setsockopt(socket.IPPROTO_TCP, socket.TCP_NODELAY,1) #N algorithm
+        s.setsockopt(socket.SOL_SOCKET, socket.SO_KEEPALIVE, 1)
         s.settimeout(5)
         for i, frame in enumerate(frameGen(cam1)):
             start = time.monotonic() 
             ret, buffer = cv.imencode(".jpg", frame, [cv.IMWRITE_JPEG_QUALITY, 60])
             jpg = buffer.tobytes()
             s.sendall(recieve.pack(len(jpg)) + jpg)
-            size = recieve.unpackl(recv(s, recieve.size))[0]
+            size = recieve.unpack(recv(s, recieve.size))[0]
             result = None
             if size:
                 result = cv.imdecode(np.frombuffer(recv(s,size), np.uint8), cv.IMREAD_GRAYSCALE)
@@ -59,6 +59,6 @@ if __name__ == "__main__":
                 if result is None:
                     status = "IDLE"
                 else:
-                    sdtatis = f"recieved {result.shape[1]} x {result.shape[0]} frame"
+                    status = f"recieved {result.shape[1]} x {result.shape[0]} frame"
                 print(f"{status} | time = {millis:.0f}ms")
     cam1.release()
