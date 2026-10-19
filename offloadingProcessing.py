@@ -7,7 +7,7 @@ from collections import deque
 import time
 import numpy as np
 
-IP = "192.168.4.58"
+IP = "192.168.4.67"
 structRef = struct.Struct(">II")
 PORT = 12345
 
@@ -32,7 +32,7 @@ def recv(socket, messageLenght):
 
 if __name__ == "__main__":
     camL  = cv.VideoCapture("/dev/video0", cv.CAP_V4L2)
-    camR = cv.VideoCapture("/dev/video0", cv.CAP_V4L2)
+    camR = cv.VideoCapture("/dev/video2", cv.CAP_V4L2)
 
     #srtyting resultionfoca 
     camL.set(cv.CAP_PROP_FRAME_WIDTH, 320)
@@ -42,7 +42,7 @@ if __name__ == "__main__":
     camR.set(cv.CAP_PROP_FRAME_WIDTH, 320)
     camR.set(cv.CAP_PROP_FRAME_HEIGHT, 240)
     camR.set(cv.CAP_PROP_BUFFERSIZE, 1)    
-    with socket.create_connection((IP, PORT), timeout = 3) as s:
+    with socket.create_connection((IP, PORT), timeout = 10) as s:
         s.setsockopt(socket.IPPROTO_TCP, socket.TCP_NODELAY,1) #N algorithm
         s.setsockopt(socket.SOL_SOCKET, socket.SO_KEEPALIVE, 1)
         s.settimeout(5)
@@ -56,7 +56,7 @@ if __name__ == "__main__":
                 camL.grab()
                 camR.grab()
 
-            ret1, frameLeft = camL.retreive()
+            ret1, frameLeft = camL.retrieve()
             ret2, frameRight = camR.retrieve()
 
 
@@ -64,7 +64,7 @@ if __name__ == "__main__":
             sendPayload = []
 
             grayL = cv.cvtColor(frameLeft, cv.COLOR_BGR2GRAY)
-            grayR = cv.cvtColor(frameRight, cv.COLOR_BGR2GTAY)
+            grayR = cv.cvtColor(frameRight, cv.COLOR_BGR2GRAY)
 
 
 
@@ -82,7 +82,19 @@ if __name__ == "__main__":
           
             millis = (time.monotonic() - start) * 1000
 
-            i+= 1
+            counter += 1
+
+            if counter % 20 == 0:
+                print(f"send {millis * 100:.0f} ")
+
+                
+
+            exitKey= cv.waitKey(1)
+            idle = "F"
+            if exitKey == ord('l'):
+                break
+
+    
 
     camL.release()
     camR.release()
