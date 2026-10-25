@@ -84,9 +84,9 @@ def capture(depth):
         #applyt valid mask
         valid = sSection[sSection > 1]
 
-        if valid > 100: #arbitratyu
-             disparityRes.append()
-        return MAD(np.array(disparityRes))
+        if valid < 100: #arbitratyu
+             disparityRes.append(np.median(valid))
+    return MAD(np.array(disparityRes))
 ################################
         #TUNE fx
 ################################
@@ -97,12 +97,13 @@ def capture(depth):
 depths = np.array(distanceInputs)
 np.random.shuffle(depths)
 
-disps = np.array([capture(depth) for depth in depths ])
+
+disps = np.array([capture(depth).mean() for depth in depths ])
 
 
 #ransac 
-u = (baseline/disps).reshape(-1,1)
-ransac = RANSACRegressor(LinearRegression(fit_intercept=False), min_sample = 1, residual_threshold=  0.1, random_state=0)
+u = (baseline/depths).reshape(-1,1)
+ransac = RANSACRegressor(LinearRegression(fit_intercept=False), min_samples = 1, residual_threshold=  0.1, random_state=0)
 
 ransac.fit(u,disps)
 
