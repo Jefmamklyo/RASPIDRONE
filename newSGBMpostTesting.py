@@ -89,7 +89,8 @@ while True:
 
         cv.imshow("ssec", sSection)
         cv.imshow("aSDF", section)
-
+        x = grayCam1[95:145, 135:185]
+        cv.imshow("asdf", x)
 
         exitKey= cv.waitKey(1)
         idle = "F"

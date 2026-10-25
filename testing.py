@@ -2,7 +2,7 @@ import cv2 as cv
 import numpy as np
 import random
 from sklearn.linear_model import RANSACRegressor, LinearRegression
-
+import threading
 
 cam1  = cv.VideoCapture("/dev/video0", cv.CAP_V4L2)
 cam2 = cv.VideoCapture("/dev/video2", cv.CAP_V4L2)
@@ -41,7 +41,6 @@ Maybe test on non-testing envs?
 """
 
 
-distanceInputs = [0.5, 1, 1.5] #m, tune fx
 
 results = [] #(3 object tuple [dist,disp,fx])
 
@@ -60,10 +59,37 @@ def MAD(x, mSD = 2):
     valid = np.abs(x-median) <= (mSD* mad)
     return x[valid]
 
+
+def adjustPreview(depth):
+    ready = threading.Event()
+
+    def waitForenter():
+        input(f"Place at {depth} and then run")
+        ready.set()
+
+    threading.Thread(target=waitForenter, daemon=True).start()
+    while not ready.is_set():
+        ret1, left = cam1.read()
+        ret2, right = cam2.read()
+
+        l = left[95:145, 135:185]
+        r = right[95:145, 135:185]
+
+        cv.imshow("left", l)
+        cv.imshow("right", r)
+
+
+        exitKey= cv.waitKey(1)
+        if exitKey == ord('l'):
+            break
+                    
+
 def capture(depth):
 
-    input(f"Place at {depth} and then run")
+    adjustPreview(depth)
     
+    cv.destroyAllWindows()
+
     #disacrd for expsure
     for i in range (15):
         cam1.read()
@@ -71,8 +97,11 @@ def capture(depth):
     #calc disparitr
     disparityRes = []
 
+    attempts = 0
+
     #Only capture valid frames
-    while len(disparityRes) > 100:
+    while len(disparityRes) < 100 and attempts <= 400:
+        attempts += 1
         ret1, leftFrame = cam1.read()
         ret2, rightFrame = cam2.read()
         grayLeft = cv.cvtColor(leftFrame, cv.COLOR_BGR2GRAY)
@@ -84,18 +113,19 @@ def capture(depth):
         #applyt valid mask
         valid = sSection[sSection > 1]
 
-        if valid < 100: #arbitratyu
+        if valid > 500: #arbitratyu
+        
              disparityRes.append(np.median(valid))
     return MAD(np.array(disparityRes))
 ################################
         #TUNE fx
 ################################
+distanceInputs = [1, 1.2, 1.4] #m, tune fx
 
-
+inlierTolPx = 1.0    
 
 
 depths = np.array(distanceInputs)
-np.random.shuffle(depths)
 
 
 disps = np.array([capture(depth).mean() for depth in depths ])
@@ -110,3 +140,9 @@ ransac.fit(u,disps)
 fx  = ransac.estimator_.coef_[0]
 
 print(f"fx = {fx:.1f} ")
+print(f"Inlienrs = {ransac.inlier_mask_.sum()}/{len(depths)}")
+print(f"rejected distances: {depths[~ransac.inlier_mask_]}")
+
+cam1.release()
+cam2.release()
+cv.destroyAllWindows()
