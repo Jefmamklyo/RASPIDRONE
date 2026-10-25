@@ -1,6 +1,16 @@
 import cv2 as cv
 import numpy as np
 
+####OLD SGBM FOR VIDEO
+####OLD SGBM FOR VIDEO
+####OLD SGBM FOR VIDEO
+####OLD SGBM FOR VIDEO
+####OLD SGBM FOR VIDEO
+####OLD SGBM FOR VIDEO
+####OLD SGBM FOR VIDEO
+
+
+
 cam1  = cv.VideoCapture("/dev/video0", cv.CAP_V4L2)
 cam2 = cv.VideoCapture("/dev/video2", cv.CAP_V4L2)
 
@@ -24,9 +34,9 @@ fx = 3015 #camera fiocal lenght foudn from tuning
 
 print("Camera 1:",cam1.isOpened())
 print("Casmera 2:", cam2.isOpened())
+stereo = cv.StereoSGBM_create(minDisparity = 0, numDisparities = 128, blockSize = 7, P1 = 1176, P2=4704, disp12MaxDiff=1, uniquenessRatio = 10, speckleWindowSize = 100, speckleRange = 32)
 
 def StereoDisparity(leftCam, rightCam):
-     stereo = cv.StereoSGBM_create(minDisparity = 0, numDisparities = 128, blockSize = 7, P1 = 1176, P2=4704, disp12MaxDiff=1, uniquenessRatio = 10, speckleWindowSize = 100, speckleRange = 32)
      disparity = stereo.compute(leftCam, rightCam).astype(np.float32)/16
      return disparity
 

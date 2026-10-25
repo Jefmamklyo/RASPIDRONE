@@ -72,9 +72,11 @@ def adjustPreview(depth):
         ret1, left = cam1.read()
         ret2, right = cam2.read()
 
-        l = left[95:145, 135:185]
-        r = right[95:145, 135:185]
+        l = left[70:170, 110:210]
+        r = right[70:170, 110:210]
+        
 
+        #enalrge 50 by 50 image 4x
         cv.imshow("left", l)
         cv.imshow("right", r)
 
@@ -108,12 +110,12 @@ def capture(depth):
         grayRight = cv.cvtColor(rightFrame, cv.COLOR_BGR2GRAY)
 
         section = stereo.compute(grayLeft, grayRight).astype(np.float32)/16
-        sSection = section[95:145, 135:185] #grab 40x40 image center 
+        sSection = section[70:170, 110:210] #grab 40x40 image center 
 
         #applyt valid mask
         valid = sSection[sSection > 1]
 
-        if valid > 500: #arbitratyu
+        if valid.size > 500: #arbitratyu
         
              disparityRes.append(np.median(valid))
     return MAD(np.array(disparityRes))
