@@ -34,7 +34,7 @@ fx = 3015 #camera fiocal lenght foudn from tuning
 
 print("Camera 1:",cam1.isOpened())
 print("Casmera 2:", cam2.isOpened())
-stereo = cv.StereoSGBM_create(minDisparity = 0, numDisparities = 128, blockSize = 7, P1 = 1176, P2=4704, disp12MaxDiff=1, uniquenessRatio = 10, speckleWindowSize = 100, speckleRange = 32)
+stereo = cv.StereoSGBM_create(minDisparity = 0, numDisparities = 128, blockSize = 7, P1 = 392, P2=1568, disp12MaxDiff=1, uniquenessRatio = 10, speckleWindowSize = 100, speckleRange = 32)
 
 def StereoDisparity(leftCam, rightCam):
      disparity = stereo.compute(leftCam, rightCam).astype(np.float32)/16
@@ -42,21 +42,18 @@ def StereoDisparity(leftCam, rightCam):
 
 
 def heightMapGeneration(disparity):
-    validMask = disparity > 5
-    heightMap = np.zeros(disparity.shape, dtype=np.uint8)
+    #remove dispaority >1
 
-    if validMask.any():
-        validValues = disparity[validMask]
+    validMask = (disparity > 1 ) 
 
-        #edgecases
-        dispMin, dispMax = validValues.min(), validValues.max()
+    depth = np.zeros(disparity.shape, dtype=np.float32)
 
-        if dispMax > dispMin:
-            normalised = (validValues - dispMin)/(dispMax - dispMin) * 255
-            heightMap[validMask] = normalised.astype(np.uint8)
-        else: #all are valid pixes with same deopt
-            heightMap[validMask] = 255
-    return heightMap, validMask
+    depth[validMask] = fx * baseLine/disparity[validMask]
+
+    validMask &= (depth >1) & (depth <5)
+
+        
+    return depth, validMask
 
 
 #convert to RGB because why not
@@ -92,9 +89,9 @@ while True:
         colourMap = RGBHeightmap(heightMap, validMask)
 
 
-        depthCoverage = 100 * validMask.sum()/validMask.size
+        ValidRatio = 100 * validMask.sum()/validMask.size
 
-        cv.putText(colourMap, f"Depthcoverage: {depthCoverage:.1f}", (7,30), cv.FONT_HERSHEY_SIMPLEX, 0.7, (255,255,255), 2)
+        cv.putText(colourMap, f"ValidRatio: {ValidRatio:.1f}", (7,30), cv.FONT_HERSHEY_SIMPLEX, 0.7, (255,255,255), 2)
 
         
 
