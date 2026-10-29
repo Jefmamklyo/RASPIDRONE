@@ -42,18 +42,21 @@ def StereoDisparity(leftCam, rightCam):
 
 
 def heightMapGeneration(disparity):
-    #remove dispaority >1
+    validMask = disparity > 5
+    heightMap = np.zeros(disparity.shape, dtype=np.uint8)
 
-    validMask = (disparity > 1 ) 
+    if validMask.any():
+        validValues = disparity[validMask]
 
-    depth = np.zeros(disparity.shape, dtype=np.float32)
+        #edgecases
+        dispMin, dispMax = validValues.min(), validValues.max()
 
-    depth[validMask] = fx * baseLine/disparity[validMask]
-
-    validMask &= (depth >1) & (depth <5)
-
-        
-    return depth, validMask
+        if dispMax > dispMin:
+            normalised = (validValues - dispMin)/(dispMax - dispMin) * 255
+            heightMap[validMask] = normalised.astype(np.uint8)
+        else: #all are valid pixes with same deopt
+            heightMap[validMask] = 255
+    return heightMap, validMask
 
 
 #convert to RGB because why not
