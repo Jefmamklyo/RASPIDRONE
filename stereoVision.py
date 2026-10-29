@@ -1,5 +1,6 @@
 import cv2 as cv
 import numpy as np
+import random
 
 ####OLD SGBM FOR VIDEO
 ####OLD SGBM FOR VIDEO
@@ -28,8 +29,8 @@ cam2.set(cv.CAP_PROP_FPS, 15)
 checkerBoardSize = (9,6)
 checkerSquareSize = 0.025 #meters
 
-baseLine = 8 #distance between cameras cm
-fx = 3015 #camera fiocal lenght foudn from tuning
+baseLine = 0.08 #distance between cameras cm
+fx = 308 #camera fiocal lenght foudn from tuning
 
 
 print("Camera 1:",cam1.isOpened())
@@ -42,21 +43,18 @@ def StereoDisparity(leftCam, rightCam):
 
 
 def heightMapGeneration(disparity):
-    validMask = disparity > 5
-    heightMap = np.zeros(disparity.shape, dtype=np.uint8)
+    #remove dispaority >1
 
-    if validMask.any():
-        validValues = disparity[validMask]
+    validMask = (disparity > 1 ) 
 
-        #edgecases
-        dispMin, dispMax = validValues.min(), validValues.max()
+    depth = np.zeros(disparity.shape, dtype=np.float32)
 
-        if dispMax > dispMin:
-            normalised = (validValues - dispMin)/(dispMax - dispMin) * 255
-            heightMap[validMask] = normalised.astype(np.uint8)
-        else: #all are valid pixes with same deopt
-            heightMap[validMask] = 255
-    return heightMap, validMask
+    depth[validMask] = fx * baseLine/disparity[validMask]
+
+    validMask &= (depth >1) & (depth <5)
+
+        
+    return depth.astype(np.uint8), validMask
 
 
 #convert to RGB because why not
@@ -64,7 +62,7 @@ def RGBHeightmap(heightMap, validMask):
      coloured = cv.applyColorMap(heightMap, cv.COLORMAP_JET)
      coloured[~validMask] =[0,0,0] #mark no conidence pixeks
      return coloured
-\
+
 
 
 
