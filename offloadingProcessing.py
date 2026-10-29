@@ -7,7 +7,7 @@ from collections import deque
 import time
 import numpy as np
 
-IP = "192.168.4.67"
+IP = "192.168.4.74"
 structRef = struct.Struct(">II")
 PORT = 12345
 
@@ -42,7 +42,7 @@ if __name__ == "__main__":
     camR.set(cv.CAP_PROP_FRAME_WIDTH, 320)
     camR.set(cv.CAP_PROP_FRAME_HEIGHT, 240)
     camR.set(cv.CAP_PROP_BUFFERSIZE, 1)    
-    with socket.create_connection((IP, PORT), timeout = 10) as s:
+    with socket.create_connection((IP, PORT), timeout = 20) as s:
         s.setsockopt(socket.IPPROTO_TCP, socket.TCP_NODELAY,1) #N algorithm
         s.setsockopt(socket.SOL_SOCKET, socket.SO_KEEPALIVE, 1)
         s.settimeout(5)

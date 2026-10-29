@@ -2,7 +2,8 @@ import cv2 as cv
 import numpy as np
 
 
-
+import matplotlib.pyplot as plt
+from mpl_toolkits.mplot3d import Axes3D
 
 #Params
 cam1  = cv.VideoCapture("/dev/video0", cv.CAP_V4L2)
@@ -80,6 +81,28 @@ position = np.eye(4, dtype = np.float32)
 orb = cv.ORB_create(nfeatures=800, scoreType = cv.ORB_FAST_SCORE) #initiliase orb
 bf = cv.BFMatcher(cv.NORM_HAMMING, crossCheck = True)
 
+
+
+plt.acorr
+fig = plt.figure(figsize=(10,7))
+
+ax = fig.add_subplot(111,projection="3d")
+
+ax.set_title("LIVE ")
+
+ax.set_xlabel("X ")
+
+
+ax.set_ylabel("Y")
+
+ax.set_zlabel("Z")
+
+
+ax.set_xlim(-2,2)
+
+ax.set_ylim(-2,2)
+
+ax.set_zlim(0,5)
 while True:
 
 
@@ -177,6 +200,7 @@ while True:
 
 
 
+
     ################################################################################
     #Build 3d Maps
     ################################################################################
@@ -184,7 +208,9 @@ while True:
     #accesing a object that might not be populated/initilised (null checking/DID)
     if map3D:
         #convert to np.array
-        pts = np.asarray(map3D) 
+        pts = np.asarray(map3D, dtype = np.float32)
+
+
 
 
         # X is X, Z is Y, Y is Z becuase top down pershpective shift
