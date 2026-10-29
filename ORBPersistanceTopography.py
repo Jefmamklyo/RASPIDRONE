@@ -2,8 +2,6 @@ import cv2 as cv
 import numpy as np
 
 
-import matplotlib.pyplot as plt
-from mpl_toolkits.mplot3d import Axes3D
 
 #Params
 cam1  = cv.VideoCapture("/dev/video0", cv.CAP_V4L2)
@@ -81,28 +79,6 @@ position = np.eye(4, dtype = np.float32)
 orb = cv.ORB_create(nfeatures=800, scoreType = cv.ORB_FAST_SCORE) #initiliase orb
 bf = cv.BFMatcher(cv.NORM_HAMMING, crossCheck = True)
 
-
-
-plt.acorr
-fig = plt.figure(figsize=(10,7))
-
-ax = fig.add_subplot(111,projection="3d")
-
-ax.set_title("LIVE ")
-
-ax.set_xlabel("X ")
-
-
-ax.set_ylabel("Y")
-
-ax.set_zlabel("Z")
-
-
-ax.set_xlim(-2,2)
-
-ax.set_ylim(-2,2)
-
-ax.set_zlim(0,5)
 while True:
 
 
@@ -213,10 +189,9 @@ while True:
 
 
 
-        # X is X, Z is Y, Y is Z becuase top down pershpective shift
         pointsX = ((pts[:,0]+2) * 100).astype(int)       #OG X
-        pointsY = ((pts[:,2]+2)*100).astype(int) #OG Z
-        height = pts[:,1] #OG Y
+        pointsY = ((pts[:,1]+2)*100).astype(int) #OG Z
+        height = pts[:,2] #OG Y
 
         heightmap = np.zeros((400, 400), dtype=np.float32)
         occupied = np.zeros((400, 400), dtype=bool) #boolean for black white
